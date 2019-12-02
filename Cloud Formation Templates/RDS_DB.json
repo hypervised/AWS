@@ -1,0 +1,163 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "RDS MySQL DB Stack.",
+	"Parameters": {
+
+		"SubnetGroup": {
+			"Type": "String",
+			"Description": "List of Subnet groups in the VPC"
+		},
+		"DBName": {
+			"Default": "MyDatabase",
+			"Description": "The database name",
+			"Type": "String",
+			"MinLength": "1",
+			"MaxLength": "64",
+			"AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+			"ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+		},
+		"DBParameterGroup": {
+			"Description": "MySQL Database Engine Version",
+			"Type": "String"
+		},
+		"DBUser": {
+			"NoEcho": "true",
+			"Description": "The database admin account username",
+			"Type": "String",
+			"MinLength": "1",
+			"MaxLength": "16",
+			"AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+			"ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+		},
+		"DBInstanceClass": {
+			"Description": "The node type to be provisioned",
+			"Type": "String",
+			"Default": "db.m4.large"
+		},
+		"AllocatedStorage": {
+			"Description": "The storage size allocated",
+			"Type": "String",
+			"Default": "5",
+			"AllowedValues": ["5", "20", "40", "50", "80", "100"],
+			"ConstraintDescription": "allocated storage size, specified in gigabytes."
+		},
+		"DBPassword": {
+			"NoEcho": "true",
+			"Description": "The database admin account password",
+			"Type": "String",
+			"MinLength": "8",
+			"MaxLength": "41",
+			"AllowedPattern": "[a-zA-Z0-9]*",
+			"ConstraintDescription": "must contain only alphanumeric characters."
+		},
+		"DBSecurityGroup": {
+			"Description": "ID of the Security Group in the deployment destination",
+			"Type": "AWS::EC2::SecurityGroup::Id"
+		},
+		"KmsKey": {
+			"Description": "ARN of the KMS Key",
+			"Type": "String"
+		},
+		"DBtype": {
+			"Description": "Selected DB Type",
+			"Type": "String"
+		}
+	},
+
+
+	"Resources": {
+
+		"MyDB": {
+			"Type": "AWS::RDS::DBInstance",
+			"Properties": {
+				"DBName": {
+					"Ref": "DBName"
+				},
+				"DBInstanceIdentifier": {
+					"Ref": "DBName"
+				},
+
+				"AllocatedStorage": {
+					"Ref": "AllocatedStorage"
+				},
+				"DBInstanceClass": {
+					"Ref": "DBInstanceClass"
+				},
+				"Engine": {
+					"Ref": "DBtype"
+				},
+
+				"MasterUsername": {
+					"Ref": "DBUser"
+				},
+				"MasterUserPassword": {
+					"Ref": "DBPassword"
+				},
+				"DBSubnetGroupName": {
+					"Ref": "SubnetGroup"
+				},
+				"VPCSecurityGroups": [{
+					"Ref": "DBSecurityGroup"
+				}],
+				"StorageEncrypted": "true",
+				"KmsKeyId": {
+					"Ref": "KmsKey"
+				},
+				"DBParameterGroupName": {
+					"Ref": "DBParameterGroup"
+				},
+									"Tags": [{
+							"Key": "Name",
+							"Value": {
+								"Ref": "DBName"
+							}
+						}
+					]
+			}
+		}
+	},
+
+	"Outputs": {
+		"JDBCConnectionString": {
+			"Description": "JDBC connection string for the database",
+			"Value": {
+				"Fn::Join": ["", ["jdbc:",
+					{
+						"Ref": "DBtype"
+					},
+					"://",
+					{
+						"Fn::GetAtt": ["MyDB", "Endpoint.Address"]
+					},
+					":",
+					{
+						"Fn::GetAtt": ["MyDB", "Endpoint.Port"]
+					},
+					"/",
+					{
+						"Ref": "DBName"
+					}
+				]]
+			}
+		},
+		"Endpoint": {
+			"Description": "RDS Writer Endpoint",
+			"Value": {
+				"Fn::GetAtt": ["MyDB", "Endpoint.Address"]
+			}
+		},
+		"Port": {
+			"Description": "RDS Port",
+			"Value": {
+				"Fn::GetAtt": ["MyDB", "Endpoint.Port"]
+			}
+		},
+		"EngineInfo": {
+			"Description": "RDS Engine",
+			"Value": {
+				"Ref": "DBtype"
+			}
+		}
+	}
+
+}

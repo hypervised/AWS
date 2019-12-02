@@ -1,0 +1,68 @@
+	{
+		"Parameters": {
+
+			"KeyName": {
+				"Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+				"Type": "AWS::EC2::KeyPair::KeyName",
+				"ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+			},
+
+			"Image": {
+				"Description": "Name of an existing AMI",
+				"Type": "AWS::EC2::Image::Id",
+				"ConstraintDescription": "must be the AMI-ID of an existing AMI."
+			},
+
+			"Subnet": {
+				"Description": "ID of the Subnet in the deployment destination",
+				"Type": "AWS::EC2::Subnet::Id"
+			},
+
+			"SecurityGroup": {
+				"Description": "ID of the Security Group in the deployment destination",
+				"Type": "AWS::EC2::SecurityGroup::Id"
+			},
+			"InstanceType": {
+				"Type": "String",
+				"Default": "t2.micro"
+			},
+			
+			"DeployedName": {
+				"Type": "String",
+				"Description": "Enter the deployed resource name."
+			}
+
+		},
+
+		"Resources": {
+			"Deployment": {
+				"Type": "AWS::EC2::Instance",
+				"Properties": {
+					"InstanceType": {
+						"Ref": "InstanceType"
+					},
+					"KeyName": {
+						"Ref": "KeyName"
+					},
+					"SecurityGroupIds": [{
+						"Ref": "SecurityGroup"
+					}],
+					"SubnetId": {
+						"Ref": "Subnet"
+					},
+					"ImageId": {
+						"Ref": "Image"
+					},
+					"Tags": [{
+							"Key": "Name",
+							"Value": {
+								"Ref": "DeployedName"
+							}
+						}
+					]
+				}
+			}
+
+		}
+
+	}
