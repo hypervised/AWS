@@ -1,0 +1,54 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "S3 Bucket Stack",
+	"Parameters": {
+		"Name": {
+			"Description": "Name of your bucket",
+			"Type": "String"
+		},
+		"KeyName": {
+			"Description": "Name of an existing EC2 KeyPair to access to the bucket",
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+		}
+	},
+	"Resources": {
+		"S3B": {
+			"Type": "AWS::S3::Bucket",
+			"Properties": {
+			
+				"AccessControl": "Private",
+				"BucketName": {
+					"Ref": "Name"
+				},
+				"PublicAccessBlockConfiguration": {	
+				"BlockPublicAcls": "true",
+				"BlockPublicPolicy": "true",
+				"IgnorePublicAcls": "true",
+				"RestrictPublicBuckets": "true"
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"Arn": {
+			"Value": {
+				"Fn::GetAtt": [
+					"S3B",
+					"Arn"
+				]
+			},
+			"Description": "Arn of S3 bucket"
+		},
+		"DomainName": {
+			"Value": {
+				"Fn::GetAtt": [
+					"S3B",
+					"DomainName"
+				]
+			},
+			"Description": "Domain Name of S3 bucket"
+
+		}
+	}
+}
