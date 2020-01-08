@@ -10,39 +10,47 @@
 			"Description": "Name of an existing EC2 KeyPair to access to the bucket",
 			"Type": "AWS::EC2::KeyPair::KeyName",
 			"ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+		},
+		"KMSMasterKeyARN": {
+			"Description": "ARN of the KMS Master Key",
+			"Type": "String"
 		}
 	},
 	"Resources": {
 		"S3B": {
 			"Type": "AWS::S3::Bucket",
 			"Properties": {
-			
+
 				"AccessControl": "Private",
 				"BucketName": {
 					"Ref": "Name"
 				},
-				"PublicAccessBlockConfiguration": {	
-				"BlockPublicAcls": "true",
-				"BlockPublicPolicy": "true",
-				"IgnorePublicAcls": "true",
-				"RestrictPublicBuckets": "true"
+				"PublicAccessBlockConfiguration": {
+					"BlockPublicAcls": "true",
+					"BlockPublicPolicy": "true",
+					"IgnorePublicAcls": "true",
+					"RestrictPublicBuckets": "true"
 				},
-				
-				"BucketEncryption": 
-				{
-				"ServerSideEncryptionConfiguration" : [ {"ServerSideEncryptionByDefault" : {
 
-  "SSEAlgorithm" : "AES256"
-}}
-				
-				]
-}
-				
+				"BucketEncryption": {
+					"ServerSideEncryptionConfiguration": [{
+							"ServerSideEncryptionByDefault": {
 
+								"SSEAlgorithm": "aws:kms",
+								"KMSMasterKeyID": {
+									"Ref": "KMSMasterKeyARN"
+								}
+							}
+						}
+
+					]
 				}
+
+
 			}
-		},
-	
+		}
+	},
+
 	"Outputs": {
 		"Arn": {
 			"Value": {
