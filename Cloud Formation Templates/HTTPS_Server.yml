@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ImageID:
+    Description: AMI ID
+    Type: String
+  InstanceName:
+    Description: Name of the instance
+    Type: String
+  DomainSuffix:
+    Description: The Hosted Zones domain suffix
+    Type: String
+  KeyName:
+    Description: EC2 KeyPair
+    Type: AWS::EC2::KeyPair::KeyName
+  InstanceType:
+    Description: EC2 Instance Size
+    Type: String
+    Default: t2.xlarge
+    AllowedValues:
+    - t2. micro
+    - t2.small
+    - t2.large
+    - t2.medium
+    - t2.large
+    - t2.xlarge
+    - t2.2xlarge
+  VpcId:
+    Description: The VPC ID for the TargetGroup
+    Type: AWS::EC2::VPC::Id
+  EC2Subnet:
+    Description: Subnet for the EC2 Instance
+    Type: AWS::EC2::Subnet::Id
+  ALBSubnet1:
+    Description: First subnet for the Load Balancer
+    Type: AWS::EC2::Subnet::Id
+  ALBSubnet2:
+    Description: Second subnet for the Load Balancer
+    Type: AWS::EC2::Subnet::Id
+  EC2SecurityGroup:
+    Description: Security Group for the EC2 Instance
+    Type: AWS::EC2::SecurityGroup::Id
+  ALBSecurityGroup:
+    Description: The Security Group for the Load Balancer
+    Type: AWS::EC2::SecurityGroup::Id
+  HealthCheckPath:
+    Description: The URL for the target group health check
+    Type: String
+  HostedZone:
+    Description: The Route 53 Hosted Zone
+    Type: AWS::Route53::HostedZone::Id
+Resources:
+  EC2Server:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref 'ImageID'
+      KeyName: !Ref 'KeyName'
+      InstanceType: !Ref 'InstanceType'
+      SubnetId: !Ref 'EC2Subnet'
+      SecurityGroupIds: 
+      - !Ref 'EC2SecurityGroup'
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn: EC2Server
+    Properties:
+      HealthCheckEnabled: 'true'
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: !Ref 'HealthCheckPath'
+      HealthCheckPort: 443
+      HealthCheckProtocol: 'HTTPS'
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      Matcher: 
+        HttpCode: '200'
+      Name: !Ref 'InstanceName'
+      Port: 443
+      Protocol: 'HTTPS'
+      Targets: 
+      - Id: !Ref EC2Server
+      TargetType: 'instance'
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref 'VpcId'
+  Certificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    DependsOn: EC2Server
+    Properties:
+      DomainName: !Sub
+        - ${Name}.${domainsuffix}
+        - Name: !Ref InstanceName 
+          domainsuffix: !Ref DomainSuffix 
+      ValidationMethod: DNS
+  ALB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    DependsOn: Certificate
+    Properties:
+      IpAddressType: ipv4
+      Name: !Ref 'InstanceName'
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !Ref 'ALBSecurityGroup'
+      Subnets:
+        - !Ref 'ALBSubnet1'
+        - !Ref 'ALBSubnet2'
+      Type: application           
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: ALB
+    Properties:
+      Certificates: 
+        - CertificateArn: !Ref Certificate
+      DefaultActions: 
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+  DNS:
+    Type: AWS::Route53::RecordSet
+    DependsOn: Listener
+    Properties:
+      AliasTarget:
+        HostedZoneId: !GetAtt 'ALB.CanonicalHostedZoneID'
+        DNSName: !GetAtt 'ALB.DNSName'
+      HostedZoneId: !Ref HostedZone
+      Name: !Sub
+        - ${Name}.${domainsuffix}
+        -  Name: !Ref InstanceName
+           domainsuffix: !Ref DomainSuffix 
+      Type: A
+      
+      
